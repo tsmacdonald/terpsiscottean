@@ -23,8 +23,7 @@
    complex figures previously defined with deffigure can be used, which will
    take up however many bars were specified in the deffigure form.
    The :face option specifies which direction the dancer should be facing at
-   the end of the figure. Supported values are up, down, in, out, left, right,
-   first-corner, second-corner.
+   the end of the figure. Supported values are specified by the direction type.
    The :step option has no real effect, but adds semantic information about which
    step should be employed. Supported values are :skip-change, :pas-de-basque,
    :strathspey, :strathspey-set, and :slipstep."
@@ -43,3 +42,37 @@
 	    (format t "~&Figure ~a" name)
 	    (dolist (step steps)
 	      (format t "~&~:r ~a will ~s" rank (if (char-equal gender #\M) "man" "woman") step))))))))
+
+(defmacro defdance (name &body figures)
+  "Defines a dance, which is a named sequence of figures.
+   For example:
+       (defdance \"Tim's Silly Little Dance\"
+         (1C-set)
+         (1C-cast-off :to second-place)
+         (1C-set)
+         (1C-cross)
+         (sideline-reel) ;;9
+         (rights-and-lefts) ;;17
+         (six-hands-round)) ;;25"
+  'todo)
+
+(deftype gender ()
+  '(member man woman))
+
+(deftype direction ()
+  '(member up down in out left right first-corner second-corner))
+
+(defclass dancer ()
+  ((gender :initarg :gender :initform 'man :accessor gender :type gender)
+   (facing :initarg :facing :initform 'up :accessor facing :type direction))
+  (:documentation "Dancers have genders and face a particular direction. They don't know where they are."))
+
+(defclass dance-space ()
+  ((height :initarg :height :initform 9 :accessor height)
+   (width :initarg :width :initform 6 :accessor width)
+   (grid :initform :reader grid))
+  (:documentation "A grid in which dancers can move"))
+
+(defmethod initialize-instance :after ((d dance-space) &rest args)
+  (declare (ignorable args))
+  (setf (slot-value d 'grid) (make-array (list (width d) (height d)) :element-type 'dancer :adjustable nil)))

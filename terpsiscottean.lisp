@@ -64,15 +64,49 @@
 
 (defclass dancer ()
   ((gender :initarg :gender :initform 'man :accessor gender :type gender)
-   (facing :initarg :facing :initform 'up :accessor facing :type direction))
+   (facing :initarg :facing :initform 'in :accessor facing :type direction))
   (:documentation "Dancers have genders and face a particular direction. They don't know where they are."))
 
 (defclass dance-space ()
-  ((height :initarg :height :initform 9 :accessor height)
-   (width :initarg :width :initform 6 :accessor width)
-   (grid :initform :reader grid))
+  ((height :initarg :height :initform 0 :accessor height)
+   (width :initarg :width :initform 0 :accessor width)
+   (grid :accessor grid))
   (:documentation "A grid in which dancers can move"))
 
 (defmethod initialize-instance :after ((d dance-space) &rest args)
   (declare (ignorable args))
-  (setf (slot-value d 'grid) (make-array (list (width d) (height d)) :element-type 'dancer :adjustable nil)))
+  (setf (slot-value d 'grid) (make-array (list (width d) (height d)) :element-type 'dancer :adjustable nil :initial-element nil)))
+
+(defun make-dance-space (&key (width 6) (height 9))
+  "Makes a new dance space with the given dimensions."
+  (make-instance 'dance-space :width width :height height))
+
+(defgeneric add-couples (dance-space &key &allow-other-keys))
+
+(defmethod add-couples ((floor dance-space)
+			&key (number 4) (starting-position (cons 1 1))
+			(horizontal-gap 1) (vertical-gap 1))
+  (unless (and
+	   (>= (array-dimension (grid floor) 0)
+	       (+ (car starting-position)
+		  (* horizontal-gap 3) ;;2 for inter-dancer space; 1 for behind women
+		  1 ;; man dancers
+		  1)) ;; woman dancers
+	   (>= (car starting-position) horizontal-gap))
+    (error "dance space too narrow for specified parameters"))
+  (unless (>= (array-dimension (grid floor) 1)
+	      (+ (cdr starting-position)
+		 (* (1+ vertical-gap) number))) ;;1+ to account for dancer, not just gap
+    (error "Dance space too short for specified parameters"))
+
+  (let ((ys (loop for row below number
+		   collecting (+ (* (1+ vertical-gap) row)
+				 (cdr starting-position)))))
+    (dolist (y ys)
+      (setf (aref (grid floor) (car starting-position) y)
+	    (make-instance 'dancer :gender 'man))
+      (setf (aref (grid floor)
+		  (+ (* 2 horizontal-gap) (car starting-position))
+		  y)
+	    (make-instance 'dancer :gender 'woman)))
+    t))

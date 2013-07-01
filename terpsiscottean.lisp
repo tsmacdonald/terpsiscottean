@@ -47,10 +47,10 @@
   "Defines a dance, which is a named sequence of figures.
    For example:
        (defdance \"Tim's Silly Little Dance\"
-         (1C-set)
-         (1C-cast-off :to second-place)
-         (1C-set)
-         (1C-cross)
+         (1C-set) ;;1
+         (1C-cast-off :to second-place) ;;3
+         (1C-set) ;;5
+         (1C-cross) ;;7
          (sideline-reel) ;;9
          (rights-and-lefts) ;;17
          (six-hands-round)) ;;25"
@@ -65,7 +65,7 @@
 (defclass dancer ()
   ((gender :initarg :gender :initform 'man :accessor gender :type gender)
    (facing :initarg :facing :initform 'in :accessor facing :type direction))
-  (:documentation "Dancers have genders and face a particular direction. They don't know where they are."))
+  (:documentation "Dancers have genders and face a particular direction."))
 
 (defclass dance-space ()
   ((height :initarg :height :initform 0 :accessor height)
@@ -75,7 +75,10 @@
 
 (defmethod initialize-instance :after ((d dance-space) &rest args)
   (declare (ignorable args))
-  (setf (slot-value d 'grid) (make-array (list (width d) (height d)) :element-type 'dancer :adjustable nil :initial-element nil)))
+  (setf (slot-value d 'grid) (make-array (list (width d) (height d))
+					 :element-type 'dancer
+					 :adjustable nil
+					 :initial-element nil)))
 
 (defun make-dance-space (&key (width 6) (height 9))
   "Makes a new dance space with the given dimensions."
@@ -111,21 +114,16 @@
 	    (make-instance 'dancer :gender 'woman)))
     t))
 
-
 (defmethod print-object ((floor dance-space) stream)
   (let ((grid (grid floor)))
     (loop for y below (array-dimension grid 1) doing
 	 (format stream "~&")
 	 (loop for x below (array-dimension grid 0) doing
 	      (let ((cell (aref grid x y)))
-		(format stream "[~A]" (if cell (print-object cell stream) "_")))))))
+		(format stream "[~A]" (or cell "_")))))))
 
-(defclass print-object-tricker () ())
-(defmethod print-object ((p print-object-tricker) stream)
-  (format stream ""))
 (defmethod print-object ((dancer dancer) stream)
   (format stream "~A"
 	  (if (eql (gender dancer) 'man)
 	      "M"
-	      "W"))
-  (make-instance 'print-object-tricker))
+	      "W")))

@@ -110,3 +110,22 @@
 		  y)
 	    (make-instance 'dancer :gender 'woman)))
     t))
+
+
+(defmethod print-object ((floor dance-space) stream)
+  (let ((grid (grid floor)))
+    (loop for y below (array-dimension grid 1) doing
+	 (format stream "~&")
+	 (loop for x below (array-dimension grid 0) doing
+	      (let ((cell (aref grid x y)))
+		(format stream "[~A]" (if cell (print-object cell stream) "_")))))))
+
+(defclass print-object-tricker () ())
+(defmethod print-object ((p print-object-tricker) stream)
+  (format stream ""))
+(defmethod print-object ((dancer dancer) stream)
+  (format stream "~A"
+	  (if (eql (gender dancer) 'man)
+	      "M"
+	      "W"))
+  (make-instance 'print-object-tricker))

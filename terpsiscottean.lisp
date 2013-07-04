@@ -151,7 +151,8 @@
 	      (let ((cell (aref grid x y)))
 		(format stream "[~A]" (or cell "_")))))))
 
-(defgeneric add-couples (dance-space &key &allow-other-keys))
+(defgeneric add-couples (dance-space &key number starting-position
+				     horizontal-gap vertical-gap))
 
 (defmethod add-couples ((floor dance-space)
 			&key (number 4) (starting-position (cons 1 1))

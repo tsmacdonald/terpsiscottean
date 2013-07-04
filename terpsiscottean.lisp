@@ -54,8 +54,6 @@
 		  (gender (elt couple 1)))
 	      (format t "~&Figure ~a" name)
 	      (dolist (step steps)
-		(unless (fboundp (first step))
-		  (error "~S is not a valid figure name" (first step)))
 		(push
 		 (append
 		  (list (first step)
@@ -74,16 +72,15 @@
   (declare (ignorable floor))
   (apply #'format (append (list stream fmt-string) args)))
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (deffigure right
+(deffigure right
     (1
      (1M
       (debugging-figure t"~&Going right!"))))
   
-  (deffigure left
+(deffigure left
     (1
      (1M
-      (debugging-figure t "~&Going left!")))))
+      (debugging-figure t "~&Going left!"))))
 
 (defun test-figure-def ()
   (deffigure 1C-set

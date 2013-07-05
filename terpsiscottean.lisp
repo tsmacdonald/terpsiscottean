@@ -2,73 +2,8 @@
 
 (in-package #:terpsiscottean)
 
-(defclass figure ()
-  ((name :initarg :name :accessor name :documentation "The human-readable name of the figure")
-   (duration :initarg :duration :accessor duration)
-   (steps :initarg :steps :accessor steps))
-  (:documentation
-   "A figure; part of a dance. The most important part is the steps slot (see documentation
-    elsewhere for details about what that entails)."))
-
-(defmethod print-object ((figure figure) stream)
-  (format stream "#<~S, a ~A-bar figure~A.>" (name figure) (duration figure)
-	  (if (steps figure) "" " with no steps")))
-
-(defun make-figures-table ()
-  (let ((table (make-hash-table)))
-    (setf (gethash 'debug table)
-	  (make-instance 'figure
-			 :steps (lambda (floor stream fmt-string &rest args)
-				  (declare (ignorable floor))
-				  (apply #'format (append (list stream fmt-string)
-							  args)))))
-    table))
-				  
 (defparameter *figures* (make-figures-table)
   "A mapping of figure names to figure implementations (functions)")
-
-
-(defclass dancer ()
-  ((gender :initarg :gender :initform 'man :accessor gender :type gender)
-   (facing :initarg :facing :initform 'in :accessor facing :type direction)
-   (set-number :initarg :set-number :initform 0 :accessor set-number :type integer))
-  (:documentation "Dancers have genders and face a particular direction."))
-
-(defmethod print-object ((dancer dancer) stream)
-  (format stream "~A"
-	  (if (eql (gender dancer) 'man)
-	      "M"
-	      "W")))
-
-(defclass dance-space ()
-  ((height :initarg :height :initform 0 :accessor height)
-   (width :initarg :width :initform 0 :accessor width)
-   (grid :accessor grid))
-  (:documentation "A grid in which dancers can move"))
-
-(defmethod initialize-instance :after ((d dance-space) &rest args)
-  (declare (ignorable args))
-  (setf (slot-value d 'grid) (make-array (list (width d) (height d))
-					 :element-type 'dancer
-					 :adjustable nil
-					 :initial-element nil)))
-(defun make-dance-space (&key (width 6) (height 9))
-  "Makes a new dance space with the given dimensions."
-  (make-instance 'dance-space :width width :height height))
-
-(defmethod print-object ((floor dance-space) stream)
-  (let ((grid (grid floor)))
-    (loop for y below (array-dimension grid 1) doing
-	 (format stream "~&")
-	 (loop for x below (array-dimension grid 0) doing
-	      (let ((cell (aref grid x y)))
-		(format stream "[~A]" (or cell "_")))))))
-
-(defgeneric dance (steps floor &key face step ))
-
-(defmethod dance ((figure figure) (floor dance-space) &key (face 'in) (step 'skip-change))
-  (funcall (steps figure) floor))
-  
 
 (defmacro deffigure (name human-readable-name &body figure)
   "deffigure defines a complete, multi-person, timed figure.
@@ -131,8 +66,8 @@
 	   (make-instance 'figure
 			  :name ,human-readable-name
 			  :duration 1 ;;TODO
-			  :steps (lambda (floor &key (face 'in) (step 'skip-change))
-				   (declare (ignorable floor face step))
+			  :steps (lambda (floor &key face step args)
+				   (declare (ignorable floor face step args))
 				   ,@(mapcar
 				      (lambda (command)
 					`(dance (gethash ',(first command) *figures*) ,@(rest command)))
@@ -140,26 +75,6 @@
 
 ;;add boilerplate to defun that assigns dancer variable and deals with common kwargs
 ;;dance-space will have to have a mapping from dancer name (1W or what have you) to coords
-
-(deffigure right "Step right"
-    (1
-     (1M
-      (debug t "~&Going right!"))))
-  
-(deffigure left "Step left"
-    (1
-     (1M
-      (debug t "~&Going left!"))))
-
-(defun test-figure-def ()
-  (deffigure 1C-set "1C set"
-    (2
-     (1M
-      (right :face 'in :step 'pas-de-basque)
-      (left :face 'in :step 'pas-de-basque))
-     (1W
-      (right :face 'in :step 'pas-de-basque)
-      (left :face 'in :step 'pas-de-basque)))))
 
 (defmacro defdance (name &body figures)
   "Defines a dance, which is a named sequence of figures.
@@ -176,41 +91,3 @@
          (1C-cast-off :to 'second-place) ;; 29
          (1C-cross) ;; 31"
   `(todo ,name ,figures))
-
-(deftype gender ()
-  '(member man woman))
-
-(deftype direction ()
-  '(member up down in out left right first-corner second-corner))
-
-
-(defgeneric add-couples (dance-space &key number starting-position
-				     horizontal-gap vertical-gap))
-
-(defmethod add-couples ((floor dance-space)
-			&key (number 4) (starting-position (cons 1 1))
-			(horizontal-gap 1) (vertical-gap 1))
-  (unless (and
-	   (>= (array-dimension (grid floor) 0)
-	       (+ (car starting-position)
-		  (* horizontal-gap 3) ;;2 for inter-dancer space; 1 for behind women
-		  1 ;; man dancers
-		  1)) ;; woman dancers
-	   (>= (car starting-position) horizontal-gap))
-    (error "dance space too narrow for specified parameters"))
-  (unless (>= (array-dimension (grid floor) 1)
-	      (+ (cdr starting-position)
-		 (* (1+ vertical-gap) number))) ;;1+ to account for dancer, not just gap
-    (error "Dance space too short for specified parameters"))
-
-  (let ((ys (loop for row below number
-		   collecting (+ (* (1+ vertical-gap) row)
-				 (cdr starting-position)))))
-    (dolist (y ys)
-      (setf (aref (grid floor) (car starting-position) y)
-	    (make-instance 'dancer :gender 'man))
-      (setf (aref (grid floor)
-		  (+ (* 2 horizontal-gap) (car starting-position))
-		  y)
-	    (make-instance 'dancer :gender 'woman)))
-    floor))

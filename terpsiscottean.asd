@@ -7,5 +7,6 @@
   :license "MIT License"
   :depends-on (#:cl-ppcre)
   :components ((:file "package")
-               (:file "terpsiscottean")))
-
+	       (:file "dancing")
+               (:file "terpsiscottean")
+	       (:file "figures")))
